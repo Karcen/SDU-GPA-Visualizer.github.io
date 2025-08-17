@@ -1,64 +1,93 @@
-# 📕 SDU 自动绩点可视化 | SDU Auto GPA Visualizer
+# 📕 SDU 自动绩点可视化 | SDU Auto GPA Visualizer  
+> 面向山东大学可信电子凭证 PDF 成绩单的本地解析与可视化工具（中国红配色方案）。  
+> Local, client-side parsing & visualization for SDU verified PDF transcripts with China Red theme.  
 
-> 面向山东大学可信电子凭证 PDF 成绩单的本地解析与可视化（China Red 配色）。  
-> Local, client‑side parsing & visualization for SDU verified PDF transcripts.
 
----
+## 🎯 项目目标 (Project Aim)  
+**中文**：构建浏览器端单页应用（SPA），实现上传 PDF 成绩单后自动抽取关键信息（学期、课程名、课程属性、学分、成绩等），并基于这些数据完成绩点计算与多维度可视化展示。  
 
-## 🎯 项目目标 (Project Aim)
-- **中文**：构建一个在浏览器端运行的单页应用（Single‑Page Application），实现上传 PDF 成绩单后 **自动抽取** *学期 (semester)、课程 (course)、属性 (attribute)、学分 (credit)、成绩 (grade)* 等信息，并据此 **计算绩点 (GPA)** 与 **可视化展示 (visualization)**。
--  **English**: Build a client‑side SPA to **extract** key fields—*semester, course, attribute, credit, grade*—from SDU PDF transcripts and compute **GPA**, followed by **visual analytics**.
+**English**：Build a client-side single-page application to automatically extract key fields (semester, course name, attribute, credit, grade) from SDU PDF transcripts, then compute GPA and generate multi-dimensional visualizations.  
 
-> **Methodological note**（方法学说明）: GPA is computed as a **credit‑weighted mean**. Let $g_i$ be per‑course grade (converted to either score or 4.0 scale), $w_i$ the credit. Then  
-> $\\text{GPA} = \\frac{\\sum_i w_i g_i}{\\sum_i w_i}$
-> 不同院校/学院可能采用不同换算与规章，此处未能确认的部分以 *This information is not definitively established* 明示。
 
----
+### 计算方法说明 (Methodology)  
+绩点计算采用**学分加权平均法**。设单门课程成绩（转换为百分制或4.0量表）为 \( g_i \)，学分为 \( w_i \)，则：  
+\[ \text{GPA} = \frac{\sum_i w_i g_i}{\sum_i w_i} \]  
 
-## 📦 文件结构 (Files)
-- `index.html`：主页面（单文件，含样式与脚本）。
-- （可选）将其与本 README 放在任意目录，使用浏览器直接打开 HTML 即可。
+⚠️ 注意：不同院校/学院的绩点换算规则可能存在差异，本工具未完全覆盖所有细分政策，未明确部分以 *"This information is not definitively established"* 标注，最终结果请以官方教务数据为准。  
 
----
 
-## 🛠️ 使用步骤 (How to Use)
-1. **获取 PDF 成绩单**（山东大学信息化公共管理服务平台 → 可信电子凭证 → 成绩单 → 预览 → 填写邮箱 → 接收带公章 PDF）。*This information is not definitively established*（流程可能调整）。
-2. 使用现代浏览器（Chrome/Edge/Firefox/Safari 最新版）。
-3. 打开 `index.html`：将 PDF **拖拽**到上传区域或点击“选择文件”。
-4. 解析完成后：
-   - 顶部 KPI 显示 **课程数/学分**、**加权分或 4.0 GPA**、**属性学分结构**、**时间范围**。
-   - 图表包含 **学期曲线**、**属性学分环图**、**成绩直方图**、**贡献度 Top10**（score×credit）。
+## 📦 文件结构 (Files)  
+- `index.html`：主页面文件（单文件架构，整合样式、脚本与逻辑）  
+- （使用说明）将 `index.html` 与本 README 放在同一目录，直接用浏览器打开 HTML 文件即可运行。  
 
----
 
-## ⚙️ 计算设置 (Computation Settings)
-- **GPA 方案 (Scale)**：
-  - *加权平均分 (0–100)*：直接以百分制分数参与加权（常见于校内平均分统计）。
-  - *线性 4.0*：\( \\text{GPA}=4\\times\\text{score}/100 \)。
-  - *区间 4.0（常用档位）*：90–100→4.0；85–89→3.7；82–84→3.3；78–81→3.0；75–77→2.7；72–74→2.3；68–71→2.0；64–67→1.5；60–63→1.0；<60→0。*This information is not definitively established*（各单位可能不同）。\n  - *自定义*：在源码中扩展 `toGPA` 即可。
-- **质化成绩映射 (Qualitative→Numeric)**：
-  - 预设：优秀(Excellent / ɪkˈselənt/)→95/97/90；良好(Good)→85/88/80；合格(Pass)→60；不合格(Fail)→0；缓考(Deferred)→0。*This information is not definitively established*。
-- **零学分 (Zero‑credit) 计入**：默认 **不计入**（如 CET 成绩 0 学分、仅做合格性记录），可手动启用。*This information is not definitively established*。
-- **重修 (Retake / ˈriːteɪk/)**：默认 **仅计最高分**（检测“*”标注），亦可关闭以逐条计入。*This information is not definitively established*。
+## 🛠️ 使用步骤 (How to Use)  
+1. **获取 PDF 成绩单**  
+   从山东大学信息化公共管理服务平台 → 可信电子凭证 → 成绩单 → 预览 → 填写邮箱 → 接收带公章的 PDF 成绩单。  
+   *This information is not definitively established*（流程可能随学校系统更新调整）。  
 
----
+2. **准备环境**  
+   使用现代浏览器（推荐 Chrome/Edge/Firefox/Safari 最新版本），确保设备内存充足。  
 
-## 📊 可视化 (Visualization)
-- **Semester curve**（学期 GPA/加权分曲线）：按学分加权聚合每学期指标。\n- **Attribute donut**（属性学分环图）：必修/限选/任选学分占比。\n- **Score histogram**（成绩直方图）：默认区间 [50,60), …, [95,100]。\n- **Top10 contribution**：按 `score × credit` 排序的课程条形图。
+3. **解析与可视化**  
+   - 打开 `index.html`，将 PDF 成绩单拖拽到上传区域，或点击“选择文件”按钮上传。  
+   - 解析完成后，系统将自动展示：  
+     - 顶部 KPI 指标：课程总数/总学分、加权平均分或4.0绩点、课程属性学分结构、时间范围。  
+     - 可视化图表：学期绩点趋势、课程类型学分占比、成绩分布直方图、课程贡献度TOP10（按 `成绩×学分` 排序）。  
 
----
 
-## 🔒 隐私与安全 (Privacy & Security)
-- **中文**：所有计算在浏览器本地完成，PDF 不会上传服务器。\n- **English**: Everything runs locally in your browser; your PDF is **not uploaded** anywhere.
+## ⚙️ 计算设置 (Computation Settings)  
+### GPA 换算方案 (Scale)  
+| 方案 | 说明 |  
+|------|------|  
+| 加权平均分 (0–100) | 直接以百分制成绩参与加权计算（适用于校内平均分统计场景） |  
+| 线性 4.0 | 按公式 \( \text{GPA} = 4 \times \text{score}/100 \) 线性转换 |  
+| 区间 4.0（常用档位） | 90–100→4.0；85–89→3.7；82–84→3.3；78–81→3.0；75–77→2.7；72–74→2.3；68–71→2.0；64–67→1.5；60–63→1.0；<60→0 |  
+| 山大标准 4.0 | 适配山东大学常见绩点换算规则的区间映射 |  
 
----
 
-## 🧠 精确性与局限 (Accuracy & Limitations)\n- 解析依赖 PDF 文本流顺序（PDF.js 提取）。若学校模板更改或 PDF 仅含位图，需更新解析规则。\n- SDU 成绩单上出现“平均学分绩点 85.54”等字段，更像**加权平均分**而非 4.0 GPA；官方折算口径未在本文档确认，*This information is not definitively established*。请以官方教务政策为准。\n- 建议手工抽样复核若干课程，以验证解析正确性。
+### 质化成绩映射 (Qualitative→Numeric)  
+将文字描述成绩转换为百分制数值，支持3种预设方案：  
+- 标准：优秀→95；良好→85；合格→60；不合格/缓考→0  
+- 高分倾向：优秀→97；良好→88；合格→60；不合格/缓考→0  
+- 低分倾向：优秀→90；良好→80；合格→60；不合格/缓考→0  
 
----
 
-## 🧩 技术栈 (Tech Stack)\n- **PDF.js** for parsing; **ECharts** for charts; plain **HTML/CSS/JS** in one file.\n- 可在 `toGPA` 和 `parseQualitative` 中进一步自定义分段与映射。
+### 其他设置  
+- **零学分课程计入**：默认不计入（如CET等级考试等0学分课程），可手动勾选启用。  
+- **重修课程处理**：默认仅保留最高分（通过“*”标记识别重修课程），可关闭此功能以保留全部记录。  
 
----
 
-## 📬 反馈与扩展 (Feedback & Extension)\n- 支持导出 CSV/PNG、细化课程分类、引入置信区间可视化（Confidence Interval / ˈkɒnfɪdəns ˈɪntəvəl/）。\n- 可接入本地存储保存设置、增加“课程搜索/筛选”。
+## 📊 可视化图表 (Visualization)  
+| 图表类型 | 说明 |  
+|---------|------|  
+| 学期趋势曲线 | 按学期展示加权平均分或4.0绩点变化，支持平滑曲线与区域填充 |  
+| 课程类型学分环图 | 展示必修课、限选课、任选课的学分占比，支持交互查看详情 |  
+| 成绩分布直方图 | 按分数区间统计课程数量，直观展示成绩分布特征 |  
+| 贡献度TOP10 | 按 `成绩×学分` 排序的课程条形图，突出高价值课程 |  
+
+
+## 🔒 隐私与安全 (Privacy & Security)  
+- **本地处理**：所有PDF解析、数据计算与可视化均在浏览器本地完成，成绩单文件不会上传至任何服务器。  
+- **数据隔离**：工具运行过程中不会读取或存储设备上的其他文件，关闭页面后数据自动清除。  
+
+
+## 🧠 精确性与局限 (Accuracy & Limitations)  
+1. **解析依赖**：解析结果依赖PDF文本流结构，若学校更新成绩单模板或PDF为扫描图片（非文本型），可能导致解析失败，需手动调整解析规则。  
+2. **政策差异**：SDU成绩单上标注的“平均学分绩点”（如85.54）更接近加权平均分而非4.0绩点，官方具体折算口径未完全确认（*This information is not definitively established*）。  
+3. **建议复核**：使用时建议手工抽样检查3-5门课程的解析结果，确保数据准确性。  
+
+
+## 🧩 技术栈 (Tech Stack)  
+- **PDF解析**：`PDF.js`（处理PDF文本提取）  
+- **可视化**：`ECharts`（生成交互式图表）  
+- **基础架构**：原生HTML/CSS/JavaScript（单文件架构，无额外依赖）  
+
+
+## 📬 扩展建议 (Feedback & Extension)  
+- 功能扩展：支持导出数据为CSV、图表为PNG；增加课程搜索/筛选功能；引入学期对比分析。  
+- 体验优化：添加解析进度条；支持本地存储常用设置；适配更多成绩单格式。  
+- 精度提升：细化课程分类（如专业必修课/通识课）；优化质化成绩映射规则。  
+
+
+若使用过程中遇到解析异常或功能建议，欢迎提交反馈！
