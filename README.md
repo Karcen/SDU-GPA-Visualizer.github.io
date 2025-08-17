@@ -6,7 +6,7 @@
 ---
 
 ## 🎯 项目目标 (Project Aim)
-- **中文**：构建一个在浏览器端运行的单页应用（Single‑Page Application / ˈsɪŋɡl peɪdʒ ˌæplɪˈkeɪʃn/），实现上传 PDF 成绩单后 **自动抽取** *学期 (semester / sɪˈmestə(r)/)、课程 (course / kɔːs/)、属性 (attribute / ˈætrɪˌbjuːt/)、学分 (credit / ˈkrɛdɪt/)、成绩 (grade / ɡreɪd/)* 等信息，并据此 **计算绩点 (GPA / dʒiː piː eɪ/)** 与 **可视化展示 (visualization / ˌvɪʒuələˈzeɪʃn/)**。\n- **English**: Build a client‑side SPA to **extract** key fields—*semester, course, attribute, credit, grade*—from SDU PDF transcripts and compute **GPA**, followed by **visual analytics**.
+- **中文**：构建一个在浏览器端运行的单页应用（Single‑Page Application），实现上传 PDF 成绩单后 **自动抽取** *学期 (semester)、课程 (course)、属性 (attribute)、学分 (credit)、成绩 (grade)* 等信息，并据此 **计算绩点 (GPA)** 与 **可视化展示 (visualization)**。\n- **English**: Build a client‑side SPA to **extract** key fields—*semester, course, attribute, credit, grade*—from SDU PDF transcripts and compute **GPA**, followed by **visual analytics**.
 
 > **Methodological note**（方法学说明）: GPA is computed as a **credit‑weighted mean**. Let \( g_i \) be per‑course grade (converted to either score or 4.0 scale), \( w_i \) the credit. Then  
 > \\[ \\text{GPA} = \\frac{\\sum_i w_i g_i}{\\sum_i w_i}. \\]  
@@ -15,7 +15,7 @@
 ---
 
 ## 📦 文件结构 (Files)
-- `auto-gpa-visualizer.html`：主页面（单文件，含样式与脚本）。
+- `index.html`：主页面（单文件，含样式与脚本）。
 - （可选）将其与本 README 放在任意目录，使用浏览器直接打开 HTML 即可。
 
 ---
@@ -36,7 +36,7 @@
   - *线性 4.0*：\( \\text{GPA}=4\\times\\text{score}/100 \)。
   - *区间 4.0（常用档位）*：90–100→4.0；85–89→3.7；82–84→3.3；78–81→3.0；75–77→2.7；72–74→2.3；68–71→2.0；64–67→1.5；60–63→1.0；<60→0。*This information is not definitively established*（各单位可能不同）。\n  - *自定义*：在源码中扩展 `toGPA` 即可。
 - **质化成绩映射 (Qualitative→Numeric)**：
-  - 预设：优秀(Excellent / ɪkˈselənt/)→95/97/90；良好(Good / ɡʊd/)→85/88/80；合格(Pass / pɑːs/)→60；不合格(Fail / feɪl/)→0；缓考(Deferred / dɪˈfɜːd/)→0。*This information is not definitively established*。
+  - 预设：优秀(Excellent / ɪkˈselənt/)→95/97/90；良好(Good)→85/88/80；合格(Pass)→60；不合格(Fail)→0；缓考(Deferred)→0。*This information is not definitively established*。
 - **零学分 (Zero‑credit) 计入**：默认 **不计入**（如 CET 成绩 0 学分、仅做合格性记录），可手动启用。*This information is not definitively established*。
 - **重修 (Retake / ˈriːteɪk/)**：默认 **仅计最高分**（检测“*”标注），亦可关闭以逐条计入。*This information is not definitively established*。
 
