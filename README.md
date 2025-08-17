@@ -1,6 +1,6 @@
 # 📕 SDU 自动绩点可视化 | SDU Auto GPA Visualizer  
-> 面向山东大学可信电子凭证 PDF 成绩单的本地解析与可视化工具（中国红配色方案）。  
-> Local, client-side parsing & visualization for SDU verified PDF transcripts with China Red theme.  
+> 面向山东大学可信电子凭证 PDF 成绩单的本地解析与可视化工具（SDU红配色方案）。  
+> Local, client-side parsing & visualization for SDU verified PDF transcripts with SDU Red theme.  
 
 
 ## 🎯 项目目标 (Project Aim)  
