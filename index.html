@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>山东大学绩点可视化 | SDU GPA Visualizer</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    :root{
+      --china-red-900:#7a0019;
+      --china-red-700:#a6001a;
+      --china-red-600:#c21807;
+      --china-red-500:#d32f2f; /* 主色调 */
+      --china-red-300:#ef5350;
+      --china-gold:#d4af37;
+      --bg:#fff9f7;
+      --ink:#2b2b2b;
+      --muted:#6b6b6b;
+      --card:#ffffff;
+      --ring:0 0 0 3px rgba(210,47,47,.25);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"SF Pro Display","Segoe UI",Roboto,Inter,system-ui,-apple-system,"Noto Sans SC","PingFang SC","Microsoft Yahei",sans-serif}
+    header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,var(--china-red-900),var(--china-red-600));color:#fff;padding:18px 20px;border-bottom:4px solid var(--china-gold)}
+    h1{margin:0;font-size:22px;letter-spacing:.5px}
+    .sub{opacity:.9;font-size:12px}
+    main{max-width:1180px;margin:20px auto;padding:0 16px;display:grid;grid-template-columns:340px 1fr;gap:16px}
+    @media (max-width: 768px) {
+      main{grid-template-columns:1fr}
+    }
+    .card{background:var(--card);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.06);padding:16px;border:1px solid #eee}
+    .card h2{font-size:16px;margin:0 0 10px;color:var(--china-red-700)}
+    .uploader{border:2px dashed var(--china-red-300);border-radius:14px;padding:18px;text-align:center;background:#fff}
+    .uploader.dragover{outline:var(--ring)}
+    input[type=file]{display:none}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--china-red-600);color:#fff;border:none;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+    .btn.secondary{background:#fff;color:var(--china-red-700);border:1px solid var(--china-red-300)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    label{font-size:12px;color:var(--muted)}
+    select, input[type=checkbox]{width:100%;padding:8px;border:1px solid #ddd;border-radius:10px;background:#fff}
+    .meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+    .meta .kpi{background:linear-gradient(180deg,#fff,#fff3f1);border:1px solid #f2d6d6;border-radius:14px;padding:12px}
+    .kpi .v{font-weight:800;font-size:18px;color:var(--china-red-700)}
+    .kpi .t{font-size:12px;color:var(--muted)}
+    #charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    @media (max-width: 768px) {
+      #charts{grid-template-columns:1fr}
+    }
+    #charts > div{height:340px;background:#fff;border-radius:16px;border:1px solid #eee}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+    th,td{padding:8px 10px;border-bottom:1px solid #f2f2f2;font-size:12px}
+    th{background:#fff5f5;color:#7a0019;position:sticky;top:0}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #f2d6d6;background:#fff9f9;color:#a6001a;font-size:11px}
+    .pill.optional{background:#f0f9f0;border-color:#d6f2d6;color:#0a710a}
+    .pill.excluded{background:#f9f0f0;border-color:#f2d6d6;color:#7a0019;opacity:0.7}
+    footer{max-width:1180px;margin:24px auto 80px;padding:0 16px;color:#777}
+    .notice{font-size:12px;line-height:1.4}
+    .badge{display:inline-block;padding:2px 6px;border:1px dashed var(--china-red-300);border-radius:8px;color:var(--china-red-700);background:#fff}
+    .hidden{display:none}
+    .processing{text-align:center;padding:20px;color:var(--muted)}
+    .processing .spinner{border:3px solid rgba(211,47,47,0.1);border-radius:50%;border-top:3px solid var(--china-red-500);width:24px;height:24px;animation:spin 1s linear infinite;margin:0 auto 10px}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    .course-selection{margin-top:16px;border-top:1px dashed #eee;padding-top:16px}
+    .select-all{font-size:12px;margin-bottom:8px}
+    .course-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px}
+    .student-info{margin-top:12px;padding:10px;background:#fff5f5;border-radius:8px;font-size:12px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>📕 山东大学绩点可视化 | SDU GPA Visualizer</h1>
+  <div class="sub">中国红主题 · 成绩单解析与学业分析 · 本地处理保护隐私</div>
+</header>
+<main>
+  <section class="card">
+    <h2>1) 上传/拖拽 PDF 成绩单</h2>
+    <div id="uploader" class="uploader" tabindex="0" aria-label="PDF uploader">
+      <p style="margin:8px 0 14px">将山东大学可信电子凭证成绩单 PDF 拖拽到此处，或</p>
+      <label for="file" class="btn">选择文件</label>
+      <input id="file" type="file" accept="application/pdf" />
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">说明：本地解析，文件不上传服务器</p>
+    </div>
+
+    <div id="student-info" class="student-info hidden">
+      <div id="info-content"></div>
+    </div>
+
+    <div id="processing" class="processing hidden">
+      <div class="spinner"></div>
+      <p>正在解析成绩单，请稍候...</p>
+    </div>
+
+    <h2 style="margin-top:18px">2) 计算设置（可调）</h2>
+    <div class="row">
+      <div>
+        <label>GPA 方案（Scale）</label>
+        <select id="gpa-scale">
+          <option value="score">加权平均分（0–100）</option>
+          <option value="linear4">线性 4.0（score/100×4）</option>
+          <option value="pku">区间 4.0（常用档位）</option>
+          <option value="sdu" selected>山大标准 4.0</option>
+        </select>
+      </div>
+      <div>
+        <label>质化成绩映射</label>
+        <select id="qual-map">
+          <option value="std" selected>优秀95/良好85/合格60/不合格0</option>
+          <option value="hi">优秀97/良好88/合格60/不合格0</option>
+          <option value="lo">优秀90/良好80/合格60/不合格0</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label><input type="checkbox" id="include-zero" /> 纳入零学分课程（如 CET）</label>
+      </div>
+      <div>
+        <label><input type="checkbox" id="retake-rule" checked /> 重修仅计最高分（含“*”标注）</label>
+      </div>
+    </div>
+
+    <div class="course-selection hidden" id="course-selection">
+      <h2>3) 课程选择（计入绩点）</h2>
+      <div class="select-all">
+        <label><input type="checkbox" id="select-all-required" checked /> 全选必修课</label>
+        <label style="margin-left:10px"><input type="checkbox" id="select-all-limited" checked /> 全选限选课</label>
+        <label style="margin-left:10px"><input type="checkbox" id="select-all-optional" /> 选择任选课</label>
+      </div>
+      <div style="max-height:200px;overflow-y:auto;margin-top:8px;border:1px solid #eee;border-radius:8px;padding:8px">
+        <div id="course-list" style="display:grid;grid-template-columns:1fr;gap:4px">
+          <!-- 课程选择列表将动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div class="kpi"><div class="t">课程数 / 总学分</div><div class="v" id="kpi-courses">—</div></div>
+      <div class="kpi"><div class="t">累计加权分 / GPA</div><div class="v" id="kpi-gpa">—</div></div>
+      <div class="kpi"><div class="t">必修/限选/任选 学分</div><div class="v" id="kpi-attr">—</div></div>
+      <div class="kpi"><div class="t">时间范围</div><div class="v" id="kpi-range">—</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>学业画像与可视化</h2>
+    <div id="charts">
+      <div id="chart-semester" aria-label="学期绩点趋势"></div>
+      <div id="chart-attr" aria-label="课程类型学分占比"></div>
+      <div id="chart-hist" aria-label="成绩分布直方图"></div>
+      <div id="chart-top" aria-label="课程贡献度TOP10"></div>
+    </div>
+    <h2 style="margin-top:16px">课程明细</h2>
+    <div style="max-height:380px;overflow:auto;border:1px solid #eee;border-radius:12px">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>学期</th><th>课程名</th><th>类型</th><th>学分</th><th>成绩</th><th>计入</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="notice">
+      <span class="badge">方法学说明</span> 本工具适配山东大学成绩单格式，自动识别必修课、限选课和任选课（默认不计入绩点）。
+      质化成绩（如“优秀/良好/合格”）按设置规则换算为数值；GPA按学分加权计算：
+      <code>GPA = (∑ 学分×绩点)/(∑ 学分)</code>。不同院校政策存在差异，请以官方解释为准。
+    </p>
+  </section>
+</main>
+
+<footer>
+  <div class="notice">
+    数据仅在本地浏览器内处理，不会上传服务器。PDF解析由 <strong>PDF.js</strong> 完成，可视化由 <strong>ECharts</strong> 提供。
+  </div>
+</footer>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js";
+
+  const $ = (sel)=>document.querySelector(sel);
+  const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
+
+  const uploader = document.getElementById('uploader');
+  const fileInput = document.getElementById('file');
+  const processing = document.getElementById('processing');
+  const courseSelection = document.getElementById('course-selection');
+  const courseList = document.getElementById('course-list');
+  const studentInfo = document.getElementById('student-info');
+  const infoContent = document.getElementById('info-content');
+
+  // 应用状态管理
+  const state = {
+    rawRows: [],       // 原始解析的课程数据
+    processedRows: [], // 处理后的课程数据
+    student: {},       // 学生信息
+    settings: {
+      scale: 'sdu', 
+      qual: 'std', 
+      includeZero: false, 
+      retake: true,
+      include: {}       // 存储课程是否计入绩点的状态
+    }
+  };
+
+  /**
+   * 将质化成绩转换为量化分数
+   * @param {string} val - 质化成绩（优秀/良好等）
+   * @param {string} map - 映射方案
+   * @returns {number} 转换后的分数
+   */
+  function parseQualitative(val, map) {
+    const base = { '优秀':95, '良好':85, '中等':75, '合格':60, '不合格':0, '缓考':0, '优秀 ':95, '良好 ':85 };
+    if(map === 'hi') { base['优秀'] = 97; base['良好'] = 88; }
+    if(map === 'lo') { base['优秀'] = 90; base['良好'] = 80; }
+    return base[val] ?? null;
+  }
+
+  /**
+   * 将分数转换为GPA
+   * @param {number} score - 原始分数
+   * @param {string} scale - GPA计算方案
+   * @returns {number} 转换后的GPA
+   */
+  function toGPA(score, scale) {
+    if (scale === 'linear4') return Math.min(4.0, (score / 100) * 4);
+    
+    // 山东大学标准GPA计算方案
+    if (scale === 'sdu') {
+      if (score >= 90) return 4.0;
+      if (score >= 85) return 3.7;
+      if (score >= 82) return 3.3;
+      if (score >= 78) return 3.0;
+      if (score >= 75) return 2.7;
+      if (score >= 72) return 2.3;
+      if (score >= 68) return 2.0;
+      if (score >= 64) return 1.5;
+      if (score >= 60) return 1.0;
+      return 0;
+    }
+    
+    // 常用区间4.0方案
+    if (scale === 'pku') {
+      if (score >= 90) return 4.0;
+      if (score >= 85) return 3.7;
+      if (score >= 82) return 3.3;
+      if (score >= 78) return 3.0;
+      if (score >= 75) return 2.7;
+      if (score >= 72) return 2.3;
+      if (score >= 68) return 2.0;
+      if (score >= 64) return 1.5;
+      if (score >= 60) return 1.0;
+      return 0;
+    }
+    
+    // 默认返回原始分数（加权平均分）
+    return score;
+  }
+
+  /**
+   * 计算加权平均值
+   * @param {Array} items - 数据项数组
+   * @param {string} key - 数值字段名
+   * @param {string} wkey - 权重字段名
+   * @returns {number} 加权平均值
+   */
+  function weightedMean(items, key = 'score', wkey = 'credit') {
+    let num = 0, den = 0;
+    for (const x of items) {
+      const w = Number(x[wkey]) || 0;
+      const v = Number(x[key]);
+      if (!Number.isFinite(w) || !Number.isFinite(v)) continue;
+      num += w * v;
+      den += w;
+    }
+    return den > 0 ? num / den : NaN;
+  }
+
+  /**
+   * 格式化学期显示
+   * @param {Array} tokens - 学期标识令牌
+   * @returns {string} 格式化后的学期字符串
+   */
+  function formatSemesterTokens(tokens) {
+    const year = tokens[0];
+    let term = tokens[1];
+    // 转换罗马数字为中文表述
+    const termMap = { 'Ⅰ': '一', 'Ⅱ': '二', 'Ⅲ': '三', 'I': '一', 'II': '二', 'III': '三' };
+    term = termMap[term] || term;
+    return `${year}年第${term}学期`;
+  }
+
+  /**
+   * 读取PDF文件内容
+   * @param {File} file - PDF文件
+   * @returns {Promise<string>} PDF文本内容
+   */
+  async function readPdf(file) {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      text += content.items.map(i => i.str).join(' ') + '\n';
+    }
+    return text;
+  }
+
+  /**
+   * 标准化文本内容
+   * @param {string} s - 原始文本
+   * @returns {string} 标准化后的文本
+   */
+  function normalizeText(s) {
+    return s.replace(/\s+/g, ' ')
+           .replace(/（/g, '(')
+           .replace(/）/g, ')')
+           .replace(/，/g, ',')
+           .replace(/；/g, ';')
+           .replace(/：/g, ':')
+           .trim();
+  }
+
+  /**
+   * 解析成绩单文本内容
+   * @param {string} raw - 原始文本
+   * @returns {Object} 解析结果
+   */
+  function parseTranscriptText(raw) {
+    const t = normalizeText(raw);
+
+    // 提取学生基本信息
+    const nameMatch = t.match(/姓名\s*[:：]\s*([\u4e00-\u9fa5]{2,})/);
+    const idMatch = t.match(/学号\s*[:：]\s*(\d{8,})/);
+    const collegeMatch = t.match(/学院\s*[:：]\s*([^\s,;]+)/);
+    const majorMatch = t.match(/专业\s*[:：]\s*([^\s,;]+)/);
+    const avgMatch = t.match(/平均学分绩点\s*[:：]\s*(\d{1,2}\.\d{2})/);
+
+    // 解析课程数据
+    const tokens = t.split(' ');
+    const rows = [];
+    const attrKeywords = ['必修', '限选', '任选']; // 课程属性关键词
+
+    // 山东大学成绩单课程行模式：学期 + 课程名 + 属性 + 学分 + 学时 + 成绩
+    for (let i = 0; i < tokens.length; i++) {
+      // 检测学期标识：4位年份 + 罗马数字(Ⅰ/Ⅱ/Ⅲ或I/II/III)
+      if (/^(19|20)\d{2}$/.test(tokens[i]) && /^(Ⅰ|Ⅱ|Ⅲ|I|II|III)$/.test(tokens[i + 1] || '')) {
+        const sem = formatSemesterTokens([tokens[i], tokens[i + 1]]);
+        let j = i + 2;
+        let nameParts = [];
+        
+        // 提取课程名称（直到遇到属性关键词）
+        while (j < tokens.length && !attrKeywords.includes(tokens[j])) {
+          nameParts.push(tokens[j]);
+          j++;
+        }
+        
+        // 提取课程属性
+        const attr = tokens[j] || '';
+        if (!attrKeywords.includes(attr)) {
+          i = j;
+          continue; // 不是有效课程行，跳过
+        }
+        
+        // 提取学分、学时和成绩
+        const credit = parseFloat(tokens[j + 1]) || 0;
+        const hours = tokens[j + 2] || ''; // 学时信息暂不使用
+        let gradeToken = tokens[j + 3] || '';
+        
+        // 检测是否为重修课程（成绩带*标记）
+        let retake = false;
+        if (gradeToken.includes('*')) {
+          retake = true;
+          gradeToken = gradeToken.replace('*', '');
+        }
+        
+        // 课程名称处理
+        const name = nameParts.join(' ').trim();
+        if (!name || name.length > 60) { // 过滤无效课程名
+          i = j + 3;
+          continue;
+        }
+        
+        // 处理成绩
+        let numeric = null, qualitative = null;
+        if (/^\d{1,3}$/.test(gradeToken)) {
+          numeric = parseInt(gradeToken, 10);
+        } else {
+          qualitative = gradeToken;
+        }
+
+        // 添加课程数据
+        rows.push({
+          id: `${sem}-${name}`, // 生成唯一ID
+          semester: sem,
+          name,
+          attr,
+          credit,
+          gradeRaw: gradeToken,
+          gradeNum: numeric,
+          gradeQual: qualitative,
+          isRetake: retake
+        });
+        
+        i = j + 3; // 跳至下一个可能的课程行
+      }
+    }
+
+    return {
+      name: nameMatch?.[1] || '',
+      sid: idMatch?.[1] || '',
+      college: collegeMatch?.[1] || '',
+      major: majorMatch?.[1] || '',
+      averageReported: avgMatch?.[1] || '',
+      rows
+    };
+  }
+
+  /**
+   * 生成课程选择列表
+   * @param {Array} rows - 课程数据
+   */
+  function generateCourseSelection(rows) {
+    courseList.innerHTML = '';
+    state.settings.include = {}; // 重置选择状态
+    
+    // 按课程类型预设选择状态
+    rows.forEach(row => {
+      // 默认为：必修课和限选课计入，任选课不计入
+      const defaultInclude = row.attr === '必修' || row.attr === '限选';
+      state.settings.include[row.id] = defaultInclude;
+      
+      // 创建课程选择项
+      const item = document.createElement('div');
+      item.className = 'course-item';
+      item.innerHTML = `
+        <input type="checkbox" id="course-${row.id}" ${defaultInclude ? 'checked' : ''} 
+               data-id="${row.id}" data-attr="${row.attr}">
+        <label for="course-${row.id}" title="${row.name} (${row.semester})">
+          ${row.name.length > 18 ? row.name.substring(0, 18) + '...' : row.name}
+          <span class="pill ${row.attr === '任选' ? 'optional' : ''}">${row.attr}</span>
+        </label>
+      `;
+      courseList.appendChild(item);
+      
+      // 添加事件监听
+      item.querySelector('input').addEventListener('change', function() {
+        state.settings.include[this.dataset.id] = this.checked;
+        refresh();
+      });
+    });
+    
+    // 全选功能
+    $('#select-all-required').addEventListener('change', function() {
+      $$(`input[data-attr="必修"]`).forEach(checkbox => {
+        checkbox.checked = this.checked;
+        state.settings.include[checkbox.dataset.id] = this.checked;
+      });
+      refresh();
+    });
+    
+    $('#select-all-limited').addEventListener('change', function() {
+      $$(`input[data-attr="限选"]`).forEach(checkbox => {
+        checkbox.checked = this.checked;
+        state.settings.include[checkbox.dataset.id] = this.checked;
+      });
+      refresh();
+    });
+    
+    $('#select-all-optional').addEventListener('change', function() {
+      $$(`input[data-attr="任选"]`).forEach(checkbox => {
+        checkbox.checked = this.checked;
+        state.settings.include[checkbox.dataset.id] = this.checked;
+      });
+      refresh();
+    });
+  }
+
+  /**
+   * 应用设置处理课程数据
+   * @param {Array} rawRows - 原始课程数据
+   * @returns {Array} 处理后的课程数据
+   */
+  function applySettings(rawRows) {
+    const includeZero = $('#include-zero').checked;
+    const retakeHighest = $('#retake-rule').checked;
+    const qualMap = $('#qual-map').value;
+    
+    // 转换成绩并应用选择状态
+    const processed = rawRows.map(row => {
+      let score = row.gradeNum;
+      if (score === null && row.gradeQual) {
+        score = parseQualitative(row.gradeQual, qualMap);
+      }
+      
+      // 应用课程选择状态
+      const manuallyIncluded = state.settings.include[row.id];
+      // 零学分课程过滤
+      const creditOk = includeZero || (row.credit || 0) > 0;
+      // 有效成绩检查
+      const scoreOk = Number.isFinite(score);
+      
+      return {
+        ...row,
+        score,
+        include: manuallyIncluded && creditOk && scoreOk
+      };
+    });
+    
+    // 处理重修课程（只保留最高分）
+    if (retakeHighest) {
+      const courseMap = new Map();
+      processed.forEach(row => {
+        if (!row.include) return;
+        
+        const key = row.name; // 按课程名识别同一课程
+        const existing = courseMap.get(key);
+        
+        if (!existing || row.score > existing.score) {
+          courseMap.set(key, row);
+          // 如果有旧记录，标记为不计入
+          if (existing) {
+            existing.include = false;
+          }
+        } else {
+          row.include = false;
+        }
+      });
+    }
+    
+    return processed;
+  }
+
+  /**
+   * 刷新界面显示
+   */
+  function refresh() {
+    const rows = applySettings(state.rawRows);
+    state.processedRows = rows;
+    const scale = $('#gpa-scale').value;
+
+    const rowsIn = rows.filter(r => r.include);
+    // 计算统计数据
+    const weightedScore = weightedMean(rowsIn, 'score', 'credit');
+    const gValues = rowsIn.map(r => ({ ...r, g: toGPA(r.score, scale) }));
+    const weightedG = weightedMean(gValues, 'g', 'credit');
+
+    // 更新KPI显示
+    $('#kpi-courses').textContent = `${rows.length} / ${rowsIn.reduce((a, b) => a + (b.credit || 0), 0).toFixed(1)} 学分`;
+    $('#kpi-gpa').textContent = scale === 'score' 
+      ? `${weightedScore.toFixed(2)}` 
+      : `${weightedG.toFixed(3)} (4.0)`;
+    
+    // 按课程类型统计学分
+    const byAttr = { '必修': 0, '限选': 0, '任选': 0 };
+    rowsIn.forEach(r => {
+      if (byAttr.hasOwnProperty(r.attr)) {
+        byAttr[r.attr] += r.credit || 0;
+      }
+    });
+    $('#kpi-attr').textContent = `必修:${byAttr.必修.toFixed(1)} / 限选:${byAttr.限选.toFixed(1)} / 任选:${byAttr.任选.toFixed(1)}`;
+
+    // 时间范围
+    const semesters = [...new Set(rows.map(r => r.semester))].sort();
+    if (semesters.length) {
+      $('#kpi-range').textContent = `${semesters[0]} — ${semesters[semesters.length - 1]}`;
+    }
+
+    // 更新课程表格
+    const tbody = $('#tbl tbody');
+    tbody.innerHTML = '';
+    for (const r of rows) {
+      const tr = document.createElement('tr');
+      tr.style.opacity = r.include ? 1 : 0.6;
+      const gradeDisplay = r.gradeNum !== null ? r.gradeNum : r.gradeQual || '—';
+      const includeDisplay = r.include 
+        ? `<span class="pill">是</span>` 
+        : `<span class="pill excluded">否</span>`;
+      
+      const cells = [
+        r.semester,
+        r.name,
+        `<span class="pill ${r.attr === '任选' ? 'optional' : ''}">${r.attr}</span>`,
+        (r.credit || 0).toFixed(1),
+        gradeDisplay,
+        includeDisplay
+      ];
+      
+      tr.innerHTML = cells.map(c => `<td>${c}</td>`).join('');
+      tbody.appendChild(tr);
+    }
+
+    // 绘制图表
+    drawCharts(rowsIn, scale);
+  }
+
+  /**
+   * 按属性分组求和
+   * @param {Array} arr - 数据数组
+   * @param {Function} keyFn - 分组键函数
+   * @param {Function} valFn - 值函数
+   * @returns {Object} 分组求和结果
+   */
+  function groupSum(arr, keyFn, valFn) {
+    const m = {};
+    for (const x of arr) {
+      const k = keyFn(x);
+      m[k] = (m[k] || 0) + (valFn(x) || 0);
+    }
+    return m;
+  }
+
+  /**
+   * 绘制图表
+   * @param {Array} rowsIn - 计入绩点的课程数据
+   * @param {string} scale - GPA计算方案
+   */
+  function drawCharts(rowsIn, scale) {
+    // 初始化图表实例
+    const ec1 = echarts.init(document.getElementById('chart-semester'));
+    const ec2 = echarts.init(document.getElementById('chart-attr'));
+    const ec3 = echarts.init(document.getElementById('chart-hist'));
+    const ec4 = echarts.init(document.getElementById('chart-top'));
+
+    // 1. 学期绩点趋势图
+    const bySem = {};
+    for (const r of rowsIn) {
+      const g = toGPA(r.score, scale);
+      (bySem[r.semester] ||= []).push({ g, w: r.credit || 0 });
+    }
+    const semCats = Object.keys(bySem).sort();
+    const semVals = semCats.map(k => {
+      const xs = bySem[k];
+      const m = xs.reduce((a, b) => ({ num: a.num + b.g * b.w, den: a.den + b.w }), { num: 0, den: 0 });
+      return m.den > 0 ? m.num / m.den : 0;
+    });
+
+    ec1.setOption({
+      backgroundColor: '#fff',
+      title: { text: '学期 ' + (scale === 'score' ? '加权平均分' : 'GPA') },
+      tooltip: { trigger: 'axis' },
+      xAxis: { 
+        type: 'category', 
+        data: semCats,
+        axisLabel: {
+          rotate: 30,
+          interval: 0
+        }
+      },
+      yAxis: { 
+        type: 'value', 
+        name: scale === 'score' ? '分数' : 'GPA (4.0)'
+      },
+      series: [{ 
+        type: 'line', 
+        data: semVals, 
+        smooth: true, 
+        areaStyle: {},
+        lineStyle: { width: 3 },
+        itemStyle: { color: '#d32f2f' }
+      }],
+      color: ['#d32f2f']
+    });
+
+    // 2. 课程类型学分占比图
+    const attrSum = groupSum(rowsIn, r => r.attr, r => r.credit || 0);
+    const pieData = Object.entries(attrSum)
+      .filter(([k, v]) => v > 0)
+      .map(([k, v]) => ({ name: k + '课', value: Number(v.toFixed(2)) }));
+    
+    ec2.setOption({
+      backgroundColor: '#fff',
+      title: { text: '学分结构（按课程类型）' },
+      tooltip: { trigger: 'item' },
+      legend: {
+        orient: 'vertical',
+        left: 10
+      },
+      series: [{ 
+        type: 'pie', 
+        radius: ['35%', '65%'], 
+        data: pieData,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }],
+      color: ['#d32f2f', '#ef5350', '#f8bbd0']
+    });
+
+    // 3. 成绩分布直方图
+    const bins = scale === 'score' 
+      ? [0,60,70,80,90,101] 
+      : [0,1,2,3,4.1];
+    const binLabels = scale === 'score'
+      ? ['<60', '60-69', '70-79', '80-89', '90+']
+      : ['<1.0', '1.0-1.9', '2.0-2.9', '3.0-4.0'];
+      
+    const counts = new Array(bins.length - 1).fill(0);
+    rowsIn.forEach(r => {
+      const value = scale === 'score' ? r.score : toGPA(r.score, scale);
+      for (let i = 0; i < bins.length - 1; i++) {
+        if (value >= bins[i] && value < bins[i + 1]) {
+          counts[i]++;
+          break;
+        }
+      }
+    });
+
+    ec3.setOption({
+      backgroundColor: '#fff',
+      title: { text: scale === 'score' ? '成绩分布' : 'GPA分布' },
+      tooltip: {},
+      xAxis: { 
+        type: 'category', 
+        data: binLabels 
+      },
+      yAxis: { type: 'value', name: '课程数' },
+      series: [{ 
+        type: 'bar', 
+        data: counts,
+        itemStyle: {
+          color: function(params) {
+            const colorList = ['#f44336', '#ff9800', '#ffeb3b', '#4caf50'];
+            return colorList[params.dataIndex] || '#2196f3';
+          }
+        }
+      }]
+    });
+
+    // 4. 课程贡献度TOP10
+    const top = [...rowsIn]
+      .sort((a, b) => (b.score * (b.credit || 0)) - (a.score * (a.credit || 0)))
+      .slice(0, 10);
+
+    ec4.setOption({
+      backgroundColor: '#fff',
+      title: { text: '课程贡献度TOP10 (成绩×学分)' },
+      tooltip: {},
+      grid: {
+        left: '30%',
+        right: '5%',
+        top: '15%',
+        bottom: '10%'
+      },
+      xAxis: { type: 'value' },
+      yAxis: { 
+        type: 'category', 
+        data: top.map(r => r.name),
+        axisLabel: {
+          interval: 0,
+          formatter: function(value) {
+            return value.length > 6 ? value.substring(0, 6) + '...' : value;
+          }
+        }
+      },
+      series: [{ 
+        type: 'bar', 
+        data: top.map(r => Number((r.score * (r.credit || 0)).toFixed(2))),
+        itemStyle: { color: '#c21807' }
+      }]
+    });
+
+    // 响应窗口大小变化
+    window.addEventListener('resize', () => {
+      ec1.resize();
+      ec2.resize();
+      ec3.resize();
+      ec4.resize();
+    });
+  }
+
+  /**
+   * 初始化应用
+   */
+  function setup() {
+    // 处理文件上传
+    function triggerRead(file) {
+      if (!file) return;
+      
+      // 显示处理状态
+      uploader.classList.add('hidden');
+      processing.classList.remove('hidden');
+      
+      readPdf(file)
+        .then(txt => {
+          const parsed = parseTranscriptText(txt);
+          state.rawRows = parsed.rows;
+          state.student = {
+            name: parsed.name,
+            sid: parsed.sid,
+            college: parsed.college,
+            major: parsed.major,
+            averageReported: parsed.averageReported
+          };
+          
+          // 显示学生信息
+          studentInfo.classList.remove('hidden');
+          infoContent.innerHTML = `
+            <div>姓名：${state.student.name || '未知'}</div>
+            <div>学号：${state.student.sid || '未知'}</div>
+            <div>学院：${state.student.college || '未知'}</div>
+            <div>专业：${state.student.major || '未知'}</div>
+            ${state.student.averageReported ? 
+              `<div>官方GPA：<span style="color:var(--china-red-600)">${state.student.averageReported}</span></div>` : ''
+            }
+          `;
+          
+          // 生成课程选择列表
+          generateCourseSelection(parsed.rows);
+          courseSelection.classList.remove('hidden');
+          
+          // 刷新显示
+          refresh();
+          
+          // 隐藏处理状态，显示上传区域
+          processing.classList.add('hidden');
+          uploader.classList.remove('hidden');
+        })
+        .catch(err => {
+          console.error('解析失败:', err);
+          alert('解析失败：' + err.message + '\n请确认上传的是山东大学标准成绩单PDF');
+          processing.classList.add('hidden');
+          uploader.classList.remove('hidden');
+        });
+    }
+
+    // 文件选择事件
+    fileInput.addEventListener('change', e => triggerRead(e.target.files?.[0]));
+
+    // 拖放事件处理
+    ['dragenter', 'dragover'].forEach(ev => {
+      uploader.addEventListener(ev, (e) => {
+        e.preventDefault();
+        uploader.classList.add('dragover');
+      });
+    });
+    
+    ['dragleave', 'drop'].forEach(ev => {
+      uploader.addEventListener(ev, (e) => {
+        e.preventDefault();
+        uploader.classList.remove('dragover');
+      });
+    });
+    
+    uploader.addEventListener('drop', e => {
+      const f = e.dataTransfer.files?.[0];
+      triggerRead(f);
+    });
+
+    // 设置变更事件
+    $('#gpa-scale').addEventListener('change', refresh);
+    $('#qual-map').addEventListener('change', refresh);
+    $('#include-zero').addEventListener('change', refresh);
+    $('#retake-rule').addEventListener('change', refresh);
+  }
+
+  // 初始化应用
+  setup();
+</script>
+</body>
+</html>
+    
