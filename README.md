@@ -9,8 +9,8 @@
 - **中文**：构建一个在浏览器端运行的单页应用（Single‑Page Application），实现上传 PDF 成绩单后 **自动抽取** *学期 (semester)、课程 (course)、属性 (attribute)、学分 (credit)、成绩 (grade)* 等信息，并据此 **计算绩点 (GPA)** 与 **可视化展示 (visualization)**。
 -  **English**: Build a client‑side SPA to **extract** key fields—*semester, course, attribute, credit, grade*—from SDU PDF transcripts and compute **GPA**, followed by **visual analytics**.
 
-> **Methodological note**（方法学说明）: GPA is computed as a **credit‑weighted mean**. Let $g_i$ be per‑course grade (converted to either score or 4.0 scale), \( w_i \) the credit. Then  
-> \\[ \\text{GPA} = \\frac{\\sum_i w_i g_i}{\\sum_i w_i}. \\]  
+> **Methodological note**（方法学说明）: GPA is computed as a **credit‑weighted mean**. Let $g_i$ be per‑course grade (converted to either score or 4.0 scale), $w_i$ the credit. Then  
+> $\\text{GPA} = \\frac{\\sum_i w_i g_i}{\\sum_i w_i}$
 > 不同院校/学院可能采用不同换算与规章，此处未能确认的部分以 *This information is not definitively established* 明示。
 
 ---
